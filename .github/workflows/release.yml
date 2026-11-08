@@ -47,7 +47,7 @@ jobs:
             Out-File -Encoding ascii LiveBackdrop-win-x64.zip.sha256
 
       - name: Create the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             LiveBackdrop-win-x64.zip
