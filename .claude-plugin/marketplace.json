@@ -1,0 +1,15 @@
+{
+  "name": "live-backdrop",
+  "description": "Live Backdrop: your desktop wallpaper behind the Claude desktop app.",
+  "owner": {
+    "name": "marcossimo",
+    "url": "https://github.com/marcossimo"
+  },
+  "plugins": [
+    {
+      "name": "live-backdrop",
+      "source": "./",
+      "description": "Your live desktop wallpaper or a picture, faintly behind the Claude desktop app."
+    }
+  ]
+}

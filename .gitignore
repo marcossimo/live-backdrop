@@ -1,0 +1,23 @@
+# .NET
+bin/
+obj/
+publish/
+TestResults/
+*.user
+.vs/
+
+# Claude Code writes the plugin API types here when it loads the plugin
+.claude-plugin/types/
+.mcpb-cache/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*~
+*.swp
+
+# Logs and local settings
+*.log
+settings.json

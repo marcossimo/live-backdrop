@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /overlay
+    schedule:
+      interval: weekly
+    groups:
+      vortice:
+        patterns: ['Vortice.*']
+      tests:
+        patterns: ['xunit*', 'Microsoft.NET.Test.Sdk']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -1,0 +1,14 @@
+{
+  "name": "live-backdrop",
+  "version": "0.3.0",
+  "description": "Your live desktop wallpaper (Wallpaper Engine included) or a picture of your choice, faintly behind the Claude desktop app, with a /backdrop settings panel.",
+  "author": {
+    "name": "marcossimo",
+    "url": "https://github.com/marcossimo"
+  },
+  "homepage": "https://github.com/marcossimo/live-backdrop",
+  "repository": "https://github.com/marcossimo/live-backdrop",
+  "license": "MIT",
+  "keywords": ["wallpaper", "background", "backdrop", "wallpaper-engine", "windows", "customization"],
+  "types": "./types/index.d.ts"
+}
