@@ -16,7 +16,7 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <AssemblyName>LiveBackdrop</AssemblyName>
     <RootNamespace>LiveBackdrop</RootNamespace>
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <Product>Live Backdrop</Product>
     <ApplicationIcon>Assets\LiveBackdrop.ico</ApplicationIcon>
     <Description>Shows the live desktop wallpaper as a faint, click-through layer over the Claude desktop app.</Description>

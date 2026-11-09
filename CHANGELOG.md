@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-09
+
+### Changed
+
+- About 85 MB less memory: the overlay's executable is no longer compressed, so .NET does not
+  keep an unpacked copy of it in memory. The download stays about the same size; the program
+  takes more disk space.
+- The GPU memory the overlay keeps between frames (about half of it) goes back while the
+  backdrop is off or Claude is minimized.
+- The wallpaper is captured no faster than the backdrop is redrawn, on Windows 11 24H2 and
+  later, so frames that would never be drawn are not taken.
+
+### Fixed
+
+- An unexpected error while looking for embedded web pages could close the overlay; it is now
+  logged and the next look tries again.
+
 ## [0.4.0] - 2026-11-09
 
 ### Added
@@ -84,7 +101,8 @@ All notable changes to this project are documented here. The format follows
 - Claude Code plugin with `/backdrop` (settings panel), `/backdrop on` and `/backdrop off`.
 - Opacity control, start with Windows.
 
-[Unreleased]: https://github.com/marcossimo/live-backdrop/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/marcossimo/live-backdrop/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/marcossimo/live-backdrop/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/marcossimo/live-backdrop/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/marcossimo/live-backdrop/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/marcossimo/live-backdrop/compare/v0.2.0...v0.2.1

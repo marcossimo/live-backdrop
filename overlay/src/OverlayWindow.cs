@@ -163,6 +163,7 @@ internal sealed class OverlayWindow : Form
         {
             SetSource(null);
             HideOverlay();
+            compositor.Release();
             Watch();
             return;
         }
@@ -237,8 +238,9 @@ internal sealed class OverlayWindow : Form
 
     private WallpaperSource? CreateWallpaper()
     {
-        var fps = settings.Current.MaxFps;
-        var wallpaper = WallpaperSource.TryCreate(compositor!, fps > 0 ? TimeSpan.FromMilliseconds(1000.0 / fps) : null);
+        // Frames arriving faster than they are drawn are not even taken (Windows 11 24H2 and later;
+        // older builds deliver every frame and the redraw interval alone applies).
+        var wallpaper = WallpaperSource.TryCreate(compositor!, TimeSpan.FromMilliseconds(RedrawIntervalMs));
         if (wallpaper is not null)
         {
             wallpaper.Paused = paused;
@@ -534,6 +536,9 @@ internal sealed class OverlayWindow : Form
         {
             Native.ShowWindow(Handle, Native.SwHide);
             shown = false;
+
+            // Nothing is drawn until Claude shows again; the memory can go back meanwhile.
+            compositor?.Release();
         }
 
         owner = IntPtr.Zero;

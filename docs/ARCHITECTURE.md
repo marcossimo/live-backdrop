@@ -163,9 +163,18 @@ its brightness in a range a bubble can use and picks white or black text by cont
 at most every three seconds, only after the picture changed, and writes the file only when the
 accent moved noticeably, since every change recolours the chat.
 
-Power: the frame-rate cap sets both the redraw interval and, where Windows supports it (24H2),
-the wallpaper capture's minimum update interval. A held picture keeps its last frame: the
-capture drops new ones (`WindowCapture.Paused`) but the overlay still follows the window.
+Power: the redraw interval (30 ms, or the frame-rate cap) is also the wallpaper capture's
+minimum update interval where Windows supports it (24H2), so frames that would never be drawn
+are not taken. A held picture keeps its last frame: the capture drops new ones
+(`WindowCapture.Paused`) but the overlay still follows the window. While nothing is shown (the
+backdrop off, Claude minimized), `Compositor.Release` gives back the swap chain, the renderer's
+copies and mask and the driver's cached memory (`IDXGIDevice3.Trim`).
+
+Tried and measured, not kept: Direct2D's `Speed` blur optimization and a render target kept
+between frames both cost more CPU, not less (holding a flip-model back buffer across `Present`
+makes the swap chain move the reference each frame); a UI Automation cache request for the web
+page walk crashed inside FlaUI. The release is published without single-file compression: a
+compressed single-file app keeps its assemblies unpacked in memory, about 85 MB.
 
 ### Web pages
 

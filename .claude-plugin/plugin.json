@@ -1,6 +1,6 @@
 {
   "name": "live-backdrop",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Your live desktop wallpaper (Wallpaper Engine included) or a picture of your choice, faintly behind the Claude desktop app, with a /backdrop settings panel.",
   "author": {
     "name": "marcossimo",

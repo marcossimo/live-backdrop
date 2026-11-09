@@ -229,6 +229,35 @@ internal sealed class Compositor : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gives back the GPU memory held between frames while nothing is shown (the backdrop off,
+    /// Claude minimized): the swap chain, the renderer's copies and mask, and what the driver
+    /// keeps for the device. The next frame builds what it needs again.
+    /// </summary>
+    public void Release()
+    {
+        lock (gate)
+        {
+            if (swapChain is null)
+            {
+                return;
+            }
+
+            ClearTree();
+            visual.SetContent(null);
+            compositionDevice.Commit();
+            blurRenderer.ReleaseCaches();
+            swapChain.Dispose();
+            swapChain = null;
+            swapWidth = 0;
+            swapHeight = 0;
+            Context.ClearState();
+            Context.Flush();
+            using var dxgi = Device.QueryInterface<IDXGIDevice3>();
+            dxgi.Trim();
+        }
+    }
+
     public void Dispose()
     {
         lock (gate)
