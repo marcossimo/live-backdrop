@@ -170,6 +170,7 @@ internal sealed class WebPageScanner : IDisposable
     {
         IReadOnlyList<Native.Rect> applied = [];
         List<Native.Rect>? previous = null;
+        var failed = false;
         using var automation = new UIA3Automation();
         while (!stopping)
         {
@@ -192,6 +193,16 @@ internal sealed class WebPageScanner : IDisposable
                 catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or TimeoutException or InvalidOperationException)
                 {
                     // The tree changes under us while the app updates; the next scan catches up.
+                }
+                catch (Exception ex)
+                {
+                    // Anything else (a fault in UI Automation or the app's accessibility) must not
+                    // take the overlay down: it is logged once and the next scan tries again.
+                    if (!failed)
+                    {
+                        Log.Write($"web page scan failed: {ex.GetType().Name}: {ex.Message}");
+                        failed = true;
+                    }
                 }
             }
 

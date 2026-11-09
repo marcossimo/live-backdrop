@@ -139,6 +139,8 @@ internal sealed class BlurRenderer : IDisposable
             masked = mask is not null;
         }
 
+        // The back buffer is wrapped again each frame: holding it across Present costs more,
+        // as the swap chain then has to move the reference to the next buffer.
         using var surface = swapChain.GetBuffer<IDXGISurface>(0);
         using var target = context.CreateBitmapFromDxgiSurface(
             surface,
@@ -163,6 +165,31 @@ internal sealed class BlurRenderer : IDisposable
 
         context.EndDraw();
         context.Target = null;
+    }
+
+    /// <summary>
+    /// Releases everything kept between frames (copies of the pictures, the mask, the target),
+    /// so the GPU memory goes back while nothing is shown. The next draw builds them again.
+    /// </summary>
+    public void ReleaseCaches()
+    {
+        context.Target = null;
+        blur.SetInput(0, null, true);
+        edges.SetInput(0, null, true);
+        grow.SetInput(0, null, true);
+        maskedBlur.SetInput(1, null, true);
+        smallEdges?.Dispose();
+        smallMask?.Dispose();
+        mask?.Dispose();
+        smallEdges = null;
+        smallMask = null;
+        mask = null;
+        foreach (var copy in copies.Values)
+        {
+            copy.Dispose();
+        }
+
+        copies.Clear();
     }
 
     /// <summary>
