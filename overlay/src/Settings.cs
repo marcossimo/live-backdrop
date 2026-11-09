@@ -39,6 +39,10 @@ internal sealed record Settings
 
     public const double MaxBlurAmount = 40;
 
+    public const int MaxFrameRate = 60;
+
+    public const string DefaultHotkey = "Ctrl+Alt+B";
+
     public bool Enabled { get; init; } = true;
 
     public BackdropSource Source { get; init; } = BackdropSource.Wallpaper;
@@ -57,6 +61,30 @@ internal sealed record Settings
 
     /// <summary>How strong the blur is: the Gaussian standard deviation, in pixels.</summary>
     public double BlurAmount { get; init; } = DefaultBlurAmount;
+
+    /// <summary>Shows an icon in the notification area, with a menu.</summary>
+    public bool TrayIcon { get; init; } = true;
+
+    /// <summary>The key combination that turns the backdrop on and off; empty for none.</summary>
+    public string Hotkey { get; init; } = DefaultHotkey;
+
+    /// <summary>The most frames a second the backdrop is redrawn; 0 for the wallpaper's own rate.</summary>
+    public int MaxFps { get; init; }
+
+    /// <summary>Holds the picture still while the computer runs on battery.</summary>
+    public bool PauseOnBattery { get; init; } = true;
+
+    /// <summary>Holds the picture still while another app has the focus.</summary>
+    public bool PauseInBackground { get; init; }
+
+    /// <summary>
+    /// The plugin colours messages from the wallpaper (<c>"colorMode": "wallpaper"</c>), so the
+    /// overlay samples it and writes <see cref="WallpaperColors"/>.
+    /// </summary>
+    public bool MatchWallpaperColors { get; init; }
+
+    /// <summary>Makes the backdrop breathe, gently, while Claude is working.</summary>
+    public bool ReactToClaude { get; init; } = true;
 
     /// <summary>
     /// Parses settings JSON leniently: unknown fields are ignored, invalid values fall back to
@@ -100,6 +128,15 @@ internal sealed record Settings
             },
             BlurAmount = Math.Clamp(ReadDouble(root, "blurAmount") ?? defaults.BlurAmount, 0, MaxBlurAmount),
             ClearWebPages = ReadBool(root, "clearWebPages") ?? defaults.ClearWebPages,
+            TrayIcon = ReadBool(root, "trayIcon") ?? defaults.TrayIcon,
+            Hotkey = root["hotkey"] is JsonValue hotkey && hotkey.TryGetValue(out string? combination)
+                ? combination.Trim()
+                : defaults.Hotkey,
+            MaxFps = (int)Math.Round(Math.Clamp(ReadDouble(root, "maxFps") ?? defaults.MaxFps, 0, MaxFrameRate)),
+            PauseOnBattery = ReadBool(root, "pauseOnBattery") ?? defaults.PauseOnBattery,
+            PauseInBackground = ReadBool(root, "pauseInBackground") ?? defaults.PauseInBackground,
+            MatchWallpaperColors = ReadString(root, "colorMode") == "wallpaper",
+            ReactToClaude = ReadBool(root, "reactToClaude") ?? defaults.ReactToClaude,
         };
     }
 

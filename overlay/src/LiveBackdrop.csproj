@@ -16,8 +16,9 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <AssemblyName>LiveBackdrop</AssemblyName>
     <RootNamespace>LiveBackdrop</RootNamespace>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <Product>Live Backdrop</Product>
+    <ApplicationIcon>Assets\LiveBackdrop.ico</ApplicationIcon>
     <Description>Shows the live desktop wallpaper as a faint, click-through layer over the Claude desktop app.</Description>
   </PropertyGroup>
 
@@ -27,6 +28,10 @@
     <PackageReference Include="Vortice.Direct2D1" Version="3.6.2" />
     <!-- UI Automation through the COM API, which exposes ARIA roles (the managed one does not). -->
     <PackageReference Include="FlaUI.UIA3" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\*.ico" />
   </ItemGroup>
 
   <ItemGroup>

@@ -30,6 +30,9 @@ internal sealed class Compositor : IDisposable
     private BlurMode blurMode;
     private float blurAmount;
     private IReadOnlyList<Native.Rect> clearAreas = [];
+    private float opacity;
+    private bool breathing;
+    private long breathingSince;
 
     public Compositor(IntPtr hwnd)
     {
@@ -76,13 +79,97 @@ internal sealed class Compositor : IDisposable
     /// <summary>The same device, as Windows Graphics Capture takes it.</summary>
     public IDirect3DDevice WinRtDevice { get; }
 
-    public void SetOpacity(double opacity)
+    public void SetOpacity(double value)
     {
         lock (gate)
         {
-            using var visual3 = visual.QueryInterface<IDCompositionVisual3>();
-            visual3.SetOpacity((float)Math.Clamp(opacity, 0, 1));
+            opacity = (float)Math.Clamp(value, 0, 1);
+            ApplyOpacity(easeFrom: null);
             compositionDevice.Commit();
+        }
+    }
+
+    /// <summary>
+    /// Starts or stops the breathing that shows Claude at work: the opacity rises and falls
+    /// gently above the chosen one. DirectComposition runs it, so it costs no frames of ours.
+    /// Stopping eases back from wherever the breath is.
+    /// </summary>
+    public void SetBreathing(bool on)
+    {
+        lock (gate)
+        {
+            if (on == breathing)
+            {
+                return;
+            }
+
+            float? easeFrom = breathing ? BreathAt(Environment.TickCount64 - breathingSince) : null;
+            breathing = on;
+            breathingSince = Environment.TickCount64;
+            ApplyOpacity(easeFrom);
+            compositionDevice.Commit();
+        }
+    }
+
+    /// <summary>How far above the chosen opacity a breath goes: noticeable, never glaring.</summary>
+    internal static float BreathDepth(float opacity) => Math.Min(Math.Min(opacity * BreathScale, MaxBreath), 1 - opacity);
+
+    private const float BreathScale = 0.9f;
+    private const float MaxBreath = 0.2f;
+    private const float BreathsPerSecond = 1 / 3f;
+    private const float EaseSeconds = 0.6f;
+
+    // The breath's opacity, ms after it began: starts at the chosen opacity, peaks half a
+    // breath later.
+    private float BreathAt(long ms)
+    {
+        var depth = BreathDepth(opacity);
+        return opacity + (depth * (1 - MathF.Cos(2 * MathF.PI * BreathsPerSecond * ms / 1000f)) / 2);
+    }
+
+    // Caller holds the gate.
+    private void ApplyOpacity(float? easeFrom)
+    {
+        using var visual3 = visual.QueryInterface<IDCompositionVisual3>();
+        var depth = BreathDepth(opacity);
+        if (breathing && depth > 0)
+        {
+            // bias + amplitude × sin(360° × f × t + phase), starting at the trough.
+            compositionDevice.CreateAnimation(out var animation).CheckError();
+            using (animation)
+            {
+                animation!.AddSinusoidal(0, opacity + (depth / 2), depth / 2, BreathsPerSecond, -90);
+                visual3.SetOpacity(animation);
+            }
+
+            return;
+        }
+
+        if (easeFrom is { } from && Math.Abs(from - opacity) > 0.001f)
+        {
+            compositionDevice.CreateAnimation(out var animation).CheckError();
+            using (animation)
+            {
+                animation!.AddCubic(0, from, (opacity - from) / EaseSeconds, 0, 0);
+                animation.End(EaseSeconds, opacity);
+                visual3.SetOpacity(animation);
+            }
+
+            return;
+        }
+
+        visual3.SetOpacity(opacity);
+    }
+
+    /// <summary>
+    /// The window's region of <paramref name="source"/> shrunk to a small square of BGRA pixels,
+    /// to pick the wallpaper's colours from.
+    /// </summary>
+    public byte[] Shrink(ID3D11Texture2D source, int x, int y, int width, int height, int size)
+    {
+        lock (gate)
+        {
+            return blurRenderer.Shrink(new WindowRegion("wallpaper", source, x, y, width, height), size);
         }
     }
 

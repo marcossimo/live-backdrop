@@ -12,6 +12,8 @@ internal static partial class Native
     public const uint SwpNoActivate = 0x0010;
     public const uint SwpNoOwnerZOrder = 0x0200;
     public const uint LwaAlpha = 0x2;
+    public const int WmHotkey = 0x0312;
+    public const uint GaRootOwner = 3;
 
     // Extended styles of the overlay window.
     public const int WsExNoRedirectionBitmap = 0x00200000; // DirectComposition draws it
@@ -64,6 +66,20 @@ internal static partial class Native
 
     [LibraryImport("user32.dll")]
     public static partial uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool RegisterHotKey(IntPtr hwnd, int id, uint modifiers, uint key);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool UnregisterHotKey(IntPtr hwnd, int id);
+
+    [LibraryImport("user32.dll")]
+    public static partial IntPtr GetForegroundWindow();
+
+    [LibraryImport("user32.dll")]
+    public static partial IntPtr GetAncestor(IntPtr hwnd, uint flags);
 
     [LibraryImport("dwmapi.dll")]
     private static partial int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out Rect value, int size);

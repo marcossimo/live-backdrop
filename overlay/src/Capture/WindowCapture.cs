@@ -52,6 +52,9 @@ internal sealed class WindowCapture : IDisposable
 
     public IntPtr Window { get; }
 
+    /// <summary>While true, new frames are dropped and the latest one is held.</summary>
+    public bool Paused { get; set; }
+
     /// <summary>True while the captured window still exists.</summary>
     public bool IsAlive => Native.IsWindow(Window);
 
@@ -99,7 +102,7 @@ internal sealed class WindowCapture : IDisposable
         try
         {
             using var frame = sender.TryGetNextFrame();
-            if (frame is null)
+            if (frame is null || Paused)
             {
                 return;
             }
