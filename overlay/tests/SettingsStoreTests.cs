@@ -44,6 +44,44 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal("kept", root["custom"]!.GetValue<string>());
     }
 
+    [Fact]
+    public void TogglingEnabledKeepsOtherFields()
+    {
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(SettingsPath, """{ "enabled": true, "opacity": 0.3, "custom": "kept" }""");
+        using var store = new SettingsStore(SettingsPath);
+
+        store.SetEnabled(false);
+
+        var root = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
+        Assert.False(root["enabled"]!.GetValue<bool>());
+        Assert.Equal(0.3, root["opacity"]!.GetValue<double>());
+        Assert.Equal("kept", root["custom"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void AnUnreadableFileIsNotReplaced()
+    {
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(SettingsPath, "{ half written");
+        using var store = new SettingsStore(SettingsPath);
+
+        store.SetEnabled(false);
+
+        Assert.Equal("{ half written", File.ReadAllText(SettingsPath));
+    }
+
+    [Fact]
+    public void RecordsTheOverlayVersion()
+    {
+        using var store = new SettingsStore(SettingsPath);
+
+        store.RecordOverlayPath(@"C:\tools\LiveBackdrop.exe");
+
+        var root = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
+        Assert.False(string.IsNullOrEmpty(root["overlayVersion"]!.GetValue<string>()));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(folder))

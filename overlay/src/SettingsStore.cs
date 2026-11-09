@@ -62,50 +62,104 @@ internal sealed class SettingsStore : IDisposable
     /// </summary>
     public void RecordOverlayPath(string exePath)
     {
+        var version = typeof(SettingsStore).Assembly.GetName().Version?.ToString(3);
+        Update(root =>
+        {
+            if (root["overlayPath"]?.GetValue<string>() == exePath && root["version"] is not null
+                && root["overlayVersion"]?.GetValue<string>() == version)
+            {
+                return false;
+            }
+
+            root["version"] ??= Settings.CurrentVersion;
+            root["overlayPath"] = exePath;
+            root["overlayVersion"] = version;
+            return true;
+        });
+    }
+
+    /// <summary>Turns the backdrop on or off, as the tray menu and the hotkey do.</summary>
+    public void SetEnabled(bool enabled) => SetField("enabled", enabled);
+
+    /// <summary>Adds or removes the overlay from the sign-in list, as the tray menu does.</summary>
+    public void SetStartWithWindows(bool enabled) => SetField("startWithWindows", enabled);
+
+    /// <summary>
+    /// Reads the file, lets <paramref name="change"/> edit its JSON (returning false to leave it
+    /// as it is) and writes it back atomically, keeping every field the change did not touch.
+    /// A file that exists but cannot be read is left alone rather than replaced.
+    /// </summary>
+    public void Update(Func<JsonObject, bool> change)
+    {
         JsonObject root;
         try
         {
-            root = File.Exists(FilePath) ? JsonNode.Parse(File.ReadAllText(FilePath)) as JsonObject ?? new JsonObject() : new JsonObject();
+            root = File.Exists(FilePath) ? JsonNode.Parse(ReadShared()) as JsonObject ?? new JsonObject() : new JsonObject();
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or IOException)
         {
-            root = new JsonObject();
-        }
-
-        if (root["overlayPath"]?.GetValue<string>() == exePath && root["version"] is not null)
-        {
+            Log.Write($"settings not updated: {ex.Message}");
             return;
         }
 
-        root["version"] ??= Settings.CurrentVersion;
-        root["overlayPath"] = exePath;
-        WriteAtomically(root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        if (change(root))
+        {
+            WriteAtomically(root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        }
+    }
+
+    private void SetField(string name, bool value) => Update(root =>
+    {
+        if (root[name] is JsonValue current && current.TryGetValue(out bool existing) && existing == value)
+        {
+            return false;
+        }
+
+        root[name] = value;
+        return true;
+    });
+
+    // The plugin may be mid-write; a few short retries ride that out.
+    private string ReadShared()
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return File.ReadAllText(FilePath);
+            }
+            catch (IOException) when (attempt < 4)
+            {
+                Thread.Sleep(30);
+            }
+        }
     }
 
     public void Dispose() => watcher?.Dispose();
 
     private Settings Load()
     {
-        // The plugin may be mid-write; a few short retries ride that out.
-        for (var attempt = 0; attempt < 5; attempt++)
+        try
         {
-            try
-            {
-                return File.Exists(FilePath) ? Settings.Parse(File.ReadAllText(FilePath)) : new Settings();
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(30);
-            }
+            return File.Exists(FilePath) ? Settings.Parse(ReadShared()) : new Settings();
         }
-
-        return Current ?? new Settings();
+        catch (IOException)
+        {
+            return Current ?? new Settings();
+        }
     }
 
     private void WriteAtomically(string text)
     {
-        var temp = FilePath + ".tmp";
-        File.WriteAllText(temp, text);
-        File.Move(temp, FilePath, overwrite: true);
+        var temp = FilePath + ".overlay.tmp";
+        try
+        {
+            File.WriteAllText(temp, text);
+            File.Move(temp, FilePath, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Write($"settings not written: {ex.Message}");
+        }
     }
 }

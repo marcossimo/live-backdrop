@@ -24,15 +24,7 @@ click and keystroke through to Claude.
 
 ## Install
 
-**1. The overlay.** Download `LiveBackdrop-win-x64.zip` from the
-[latest release](https://github.com/marcossimo/live-backdrop/releases/latest), extract it
-anywhere you keep programs (for example `%LOCALAPPDATA%\Programs\LiveBackdrop`) and run
-`LiveBackdrop.exe` once. It records where it lives, so the plugin can start it later.
-
-The release is not code-signed yet, so Windows SmartScreen may warn on the first run
-(**More info → Run anyway**). You can also [build it yourself](#build-from-source).
-
-**2. The plugin.** In a Claude Code terminal session:
+**1. The plugin.** In a Claude Code terminal session:
 
 ```
 /plugin install live-backdrop --marketplace marcossimo/live-backdrop
@@ -47,6 +39,23 @@ claude plugin install live-backdrop --marketplace marcossimo/live-backdrop
 In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace**
 with `marcossimo/live-backdrop`, then **Add plugin**.
 
+**2. The overlay.** In a new Code session, run:
+
+```
+/backdrop install
+```
+
+It downloads `LiveBackdrop-win-x64.zip` from the GitHub release that matches the plugin,
+checks it against the release's SHA-256, unpacks it to `%LOCALAPPDATA%\Programs\LiveBackdrop`
+and starts it. The `/backdrop` panel shows the progress, and later offers an update whenever
+the plugin is newer than the overlay.
+
+To do it by hand instead, download the zip from the
+[latest release](https://github.com/marcossimo/live-backdrop/releases/latest), extract it
+anywhere you keep programs and run `LiveBackdrop.exe` once (it records where it lives, so the
+plugin can start it later). The release is not code-signed yet, so Windows SmartScreen may warn
+on that first run (**More info → Run anyway**). You can also [build it yourself](#build-from-source).
+
 ## Use
 
 | Command | What it does |
@@ -54,9 +63,13 @@ with `marcossimo/live-backdrop`, then **Add plugin**.
 | `/backdrop` | Opens the settings panel |
 | `/backdrop on` | Turns the backdrop on (starting the overlay if needed) |
 | `/backdrop off` | Turns it off |
+| `/backdrop install` | Installs the overlay, or updates it to the plugin's version |
+| **Ctrl+Alt+B** | Turns the backdrop on or off from anywhere (changeable in the panel) |
 
-The panel sets the source (live wallpaper or a picture file), the opacity, the blur, and
-whether the overlay starts with Windows. Changes apply immediately.
+The panel sets the source (live wallpaper or a picture file), the opacity, the blur, the
+colours, power saving, the shortcut and whether the overlay starts with Windows. Changes apply
+immediately. The overlay also has an icon in the notification area: click it to turn the
+backdrop on or off, or open its menu for start with Windows, the log and Exit.
 
 **Blur** softens the picture so text stays easy to read, like frosted glass. *Behind text*
 (the default) blurs it only behind what the app draws, paragraph by paragraph, and follows the
@@ -72,9 +85,19 @@ pages embedded in the app, without any backdrop.
   replies keeps the app's colour: replies are rich text (headings, lists, code), which plugins
   can wrap but not recolour.
 
+*Match the wallpaper* sets both from the wallpaper instead: your bubble takes its most vivid
+colour, with white or black text, whichever reads better, and replies sit on the same colour at
+the opacity you choose. They follow the wallpaper as it changes.
+
 Message colours are drawn by the app itself through the plugin, so they scroll with the chat.
 While your bubble colours are on, pictures attached to your messages are not shown in the
 bubble; turn the bubble colour off to see them again.
+
+**Claude at work** (on by default): while Claude is working on a reply, the backdrop breathes,
+brightening and dimming slowly, and settles when the reply is done.
+
+**Power**: cap the frame rate, and hold the picture still on battery (on by default) or while
+another app has the focus. The wallpaper is not captured at all while Claude is minimized.
 
 Settings live in `%LOCALAPPDATA%\LiveBackdrop\settings.json`; you can edit that file by hand
 too, and the overlay picks the change up within a frame.
@@ -105,7 +128,10 @@ alternatives that were ruled out.
   `%LOCALAPPDATA%\LiveBackdrop\overlay.log`.
 - **The animation stops when Claude is maximized.** That is Wallpaper Engine pausing; see
   [Requirements](#requirements).
-- **"Overlay not installed yet".** Run `LiveBackdrop.exe` once so it can record its location.
+- **"Overlay not installed yet".** Run `/backdrop install`, or run `LiveBackdrop.exe` once so it
+  can record its location.
+- **The shortcut does nothing.** Another app may already use it; the log says so. Pick another
+  in the panel.
 
 ## Build from source
 
@@ -129,8 +155,8 @@ and check it with `claude plugin validate .` and `claude plugin test .`.
 Ideas, roughly in order. Discussion and pull requests are welcome.
 
 - A code-signed release
-- More settings in the panel, such as a frame-rate cap
 - A picture slideshow from a folder
+- Video files as a source, without Wallpaper Engine
 - Following other apps besides Claude
 - A true background (behind the text) if the Claude app ever offers one to plugins
 

@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-09
+
+### Added
+
+- One-step install: `/backdrop install` (or the panel's install button) downloads the overlay
+  matching the plugin's version from the GitHub release, checks it against its SHA-256, unpacks
+  it to `%LOCALAPPDATA%\Programs\LiveBackdrop` (or where it already runs), and starts it. The
+  same button offers an update when the overlay is older than the plugin.
+- Match the wallpaper: message colours can follow the wallpaper. The overlay samples the
+  picture under the Claude window on the GPU every few seconds and writes its most vivid colour
+  (toned for a bubble) and a readable text colour to `wallpaper-colors.json`; your bubble and
+  the replies' background follow it as the wallpaper changes. New setting `colorMode`.
+- Claude at work: the backdrop breathes, gently, while Claude is working, and settles when the
+  turn ends. DirectComposition runs the animation, so it costs no extra frames. On by default;
+  new setting `reactToClaude`.
+- Notification area icon: a click turns the backdrop on or off; its menu has start with
+  Windows, the settings folder, the log and Exit. New setting `trayIcon`.
+- A global shortcut to turn the backdrop on and off, Ctrl+Alt+B by default. New setting
+  `hotkey` (empty for none).
+- Power: a frame-rate cap (`maxFps`), and the picture held still on battery (`pauseOnBattery`,
+  on by default) or while another app has the focus (`pauseInBackground`). The wallpaper is no
+  longer captured while the Claude window is hidden or minimized.
+- An icon for the overlay's executable and for the plugin.
+
+### Changed
+
+- The overlay records its version in the settings (`overlayVersion`), shown in the panel.
+- The panel applies each change to the settings as the file holds them, so a change made from
+  the tray or the shortcut is never undone by the panel.
+- A settings file caught half written is read again instead of counting as empty, and is
+  never replaced while it cannot be read.
+
 ## [0.3.0] - 2026-11-08
 
 ### Changed
@@ -52,7 +84,8 @@ All notable changes to this project are documented here. The format follows
 - Claude Code plugin with `/backdrop` (settings panel), `/backdrop on` and `/backdrop off`.
 - Opacity control, start with Windows.
 
-[Unreleased]: https://github.com/marcossimo/live-backdrop/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/marcossimo/live-backdrop/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/marcossimo/live-backdrop/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/marcossimo/live-backdrop/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/marcossimo/live-backdrop/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/marcossimo/live-backdrop/compare/v0.1.0...v0.2.0

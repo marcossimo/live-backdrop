@@ -14,9 +14,9 @@ internal sealed class WallpaperSource : IBackdropSource
 
     private readonly WindowCapture capture;
 
-    private WallpaperSource(Compositor compositor, IntPtr desktop)
+    private WallpaperSource(Compositor compositor, IntPtr desktop, TimeSpan? minInterval)
     {
-        capture = new WindowCapture(compositor, desktop, "wallpaper");
+        capture = new WindowCapture(compositor, desktop, "wallpaper", minInterval);
         capture.FrameReady += (_, _) => FrameReady?.Invoke(this, EventArgs.Empty);
     }
 
@@ -25,11 +25,21 @@ internal sealed class WallpaperSource : IBackdropSource
     /// <summary>True while the desktop host this source captures still exists.</summary>
     public bool IsAlive => capture.IsAlive;
 
-    /// <summary>Starts capturing the desktop wallpaper, or returns null when there is no desktop host.</summary>
-    public static WallpaperSource? TryCreate(Compositor compositor)
+    /// <summary>While true, the wallpaper's picture is held still.</summary>
+    public bool Paused
+    {
+        get => capture.Paused;
+        set => capture.Paused = value;
+    }
+
+    /// <summary>
+    /// Starts capturing the desktop wallpaper, at most once per <paramref name="minInterval"/>
+    /// where Windows supports it, or returns null when there is no desktop host.
+    /// </summary>
+    public static WallpaperSource? TryCreate(Compositor compositor, TimeSpan? minInterval)
     {
         var desktop = Native.FindWindow(DesktopHostClass, IntPtr.Zero);
-        return desktop == IntPtr.Zero ? null : new WallpaperSource(compositor, desktop);
+        return desktop == IntPtr.Zero ? null : new WallpaperSource(compositor, desktop, minInterval);
     }
 
     public bool TryGetFrame(Native.Rect target, out ID3D11Texture2D? texture, out int x, out int y)

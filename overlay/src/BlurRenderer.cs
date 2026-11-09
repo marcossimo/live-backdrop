@@ -165,6 +165,42 @@ internal sealed class BlurRenderer : IDisposable
         context.Target = null;
     }
 
+    /// <summary>
+    /// The window's region of <paramref name="source"/>, shrunk on the GPU to
+    /// <paramref name="size"/> × <paramref name="size"/> (every source pixel counts, through
+    /// high-quality cubic downscaling) and read back as BGRA bytes.
+    /// </summary>
+    public byte[] Shrink(WindowRegion source, int size)
+    {
+        var picture = Bitmap(source);
+        var properties = new BitmapProperties1(new PixelFormat(Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.Target);
+        using var small = context.CreateBitmap(new SizeI(size, size), IntPtr.Zero, 0, properties);
+        context.Target = small;
+        context.BeginDraw();
+        context.DrawBitmap(picture, new Vortice.RawRectF(0, 0, size, size), 1, InterpolationMode.HighQualityCubic, null, null);
+        context.EndDraw();
+        context.Target = null;
+
+        using var readable = context.CreateBitmap(
+            new SizeI(size, size), IntPtr.Zero, 0, new BitmapProperties1(properties.PixelFormat, 96, 96, BitmapOptions.CpuRead | BitmapOptions.CannotDraw));
+        readable.CopyFromBitmap(small);
+        var map = readable.Map(MapOptions.Read);
+        try
+        {
+            var pixels = new byte[size * size * 4];
+            for (var row = 0; row < size; row++)
+            {
+                System.Runtime.InteropServices.Marshal.Copy(map.Bits + (int)(row * map.Pitch), pixels, row * size * 4, size * 4);
+            }
+
+            return pixels;
+        }
+        finally
+        {
+            readable.Unmap();
+        }
+    }
+
     // Rebuilds the half-size mask from the app's picture: find its edges at full size (shrinking
     // first would blur the letters below the threshold), turn them into opacity and shrink them;
     // then, at half size, grow them into blocks and soften the blocks' borders.

@@ -26,13 +26,32 @@ Claude Code plugin (TypeScript)          Overlay (C#, LiveBackdrop.exe)
   "userTextColor": "#ffffff",
   "replyBackgroundColor": "#ffffff",
   "replyBackgroundOpacity": 0.08,
-  "overlayPath": "C:\\Users\\you\\AppData\\Local\\Programs\\LiveBackdrop\\LiveBackdrop.exe"
+  "colorMode": "manual",
+  "reactToClaude": true,
+  "maxFps": 0,
+  "pauseOnBattery": true,
+  "pauseInBackground": false,
+  "trayIcon": true,
+  "hotkey": "Ctrl+Alt+B",
+  "overlayPath": "C:\\Users\\you\\AppData\\Local\\Programs\\LiveBackdrop\\LiveBackdrop.exe",
+  "overlayVersion": "0.4.0"
 }
 ```
 
 Both sides read it leniently: unknown fields are kept and ignored, a missing or invalid field
-takes its default. The plugin writes the fields it owns over what is there; the overlay writes
-only `version` and `overlayPath`. When a change to the format cannot be read by older versions,
+takes its default. The plugin writes the fields it owns over what the file holds at that
+moment (it reads the file again first, so a change made from the tray is kept); the overlay
+writes `version`, `overlayPath` and `overlayVersion`, and `enabled` and `startWithWindows` when
+they are changed from its tray icon or shortcut. Neither side replaces a file it cannot read
+(caught half written, it is read again a few times).
+
+Three more files sit in the same folder:
+
+| File | Written by | Read by | What |
+| --- | --- | --- | --- |
+| `wallpaper-colors.json` | overlay | plugin | `accent`, `text`, `average` as `#rrggbb`, while `colorMode` is `wallpaper` |
+| `activity\<session id>.json` | plugin | overlay | `{"working": true}` from the start of a turn to its end, rewritten every minute while it runs |
+| `install-status.json` | install script | plugin | the state of `/backdrop install`: downloading, verifying, installing, done or failed | When a change to the format cannot be read by older versions,
 raise `version` and handle the old shape in both readers.
 
 ## The plugin (`hooks/`, `types/`, `tests/`)
@@ -45,6 +64,8 @@ raise `version` and handle the old shape in both readers.
 | `hooks/state.ts` | The panel's state (settings, overlay status, notice), refresh and apply |
 | `hooks/settings.ts` | Defaults, lenient parsing, merging, reading and writing the file |
 | `hooks/overlay.ts` | Whether the overlay runs, and starting it |
+| `hooks/install.ts` | `/backdrop install`: the install script, starting it and following its progress |
+| `hooks/activity.ts` | Tells the overlay when Claude is working (`turn.start`, `turn.complete`) |
 | `types/index.d.ts` | The settings type and the plugin's state contract |
 
 The panel uses the elements every surface offers (Box, Text, Button) and adds Select and Input
@@ -66,6 +87,9 @@ where the surface has them.
 | `RectMath.cs` | Rectangle intersection and subtraction |
 | `Settings.cs`, `SettingsStore.cs` | The settings model, parsing and file watching |
 | `Autostart.cs` | The current user's "run at sign-in" entry |
+| `TrayIcon.cs`, `Hotkey.cs` | The notification area icon and menu; the on/off shortcut |
+| `WallpaperColors.cs` | Picks the wallpaper's colours from a small copy of it |
+| `ClaudeActivity.cs` | Reads whether any Claude Code session is working |
 | `Native.cs` | Win32, DWM and WinRT interop |
 
 ### The window
@@ -125,6 +149,24 @@ pages to keep clear, the root shows nothing and "pieces" do: the window minus th
 chain. Use an `IDCompositionRectangleClip`; Vortice's `SetClip(RawRectF)` overload did not
 reach Windows correctly.
 
+### Breathing, colours and power
+
+While any session's activity file says Claude is working, `Compositor.SetBreathing` gives the
+root visual's opacity a DirectComposition sinusoidal animation: from the chosen opacity up to
+nearly twice it (at most 0.2 more) and back, every three seconds. Windows runs the animation,
+so the overlay draws no extra frames for it; at the end of the turn a short ramp eases back.
+
+For *match the wallpaper*, `BlurRenderer.Shrink` draws the window's region of the wallpaper
+into a 32 × 32 bitmap (high-quality cubic downscaling, so every pixel counts) and reads it
+back; `WallpaperColors` takes the hue holding the most vivid weight (saturation × value), keeps
+its brightness in a range a bubble can use and picks white or black text by contrast. It runs
+at most every three seconds, only after the picture changed, and writes the file only when the
+accent moved noticeably, since every change recolours the chat.
+
+Power: the frame-rate cap sets both the redraw interval and, where Windows supports it (24H2),
+the wallpaper capture's minimum update interval. A held picture keeps its last frame: the
+capture drops new ones (`WindowCapture.Paused`) but the overlay still follows the window.
+
 ### Web pages
 
 `WebPageScanner` walks the Claude window's UI Automation tree (through FlaUI and the COM API,
@@ -153,6 +195,7 @@ arrive with the origin `sdk`, so the hook tells the person's prompts apart by th
 
 | Idea | Why not |
 | --- | --- |
+| Downloading the overlay with `$.http.fetch` | It returns text only; the install runs a PowerShell script instead, detached so it outlives the hook's time limit, and unpacks with `tar` (unlike `Expand-Archive`, it does not mark the files as downloaded) |
 | A Claude Code plugin backdrop (`$.ui.backdrop`) | The plugin API has one, but the desktop app did not draw it at the time of writing. Worth revisiting: it would put the picture truly *behind* the text |
 | Injecting CSS into the app | The app blocks remote debugging switches and validates its package; working around that would defeat its security |
 | Making Claude's own window transparent | The app's window rejects the layered style |
